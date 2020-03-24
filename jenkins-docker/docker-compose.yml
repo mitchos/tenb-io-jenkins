@@ -1,0 +1,36 @@
+version: '3.1'
+services:
+    registry:
+        container_name: registry
+        image: registry:2
+        ports:
+            - '5000:5000'
+        restart: always
+    cs-scanner:
+        container_name: cs-scanner
+        image: cs-scanner
+        environment: 
+            - TENABLE_ACCESS_KEY
+            - TENABLE_SECRET_KEY
+        command: ["import-registry"]
+        depends_on:
+            - registry
+    jenkins:
+        container_name: jenkins
+        ports:
+            - '8080:8080'
+            - '50000:50000'
+        image: jenkins-master:latest
+        depends_on:
+            - registry
+    jenkins-slave:
+        container_name: jenkins-slave
+        restart: always
+        environment:
+            - 'JENKINS_URL=http://jenkins:8080'
+        image: jenkins-slave:latest
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock  # Expose the docker daemon in the container
+            - /home/jenkins:/home/jenkins # Avoid mysql volume mount issue
+        depends_on:
+            - jenkins
